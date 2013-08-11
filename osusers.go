@@ -40,14 +40,14 @@ func (g *osGroup) Id() int { return g.gid }
 
 func (g *osGroup) Members() []User { return nil }
 
-func initOsusers() {
+func initOsUsers() {
 	OsUsers = new(osUsers)
 	OsUsers.users = make(map[int]*osUser)
 	OsUsers.groups = make(map[int]*osGroup)
 }
 
 func (up *osUsers) Uid2User(uid int) User {
-	once.Do(initOsusers)
+	once.Do(initOsUsers)
 	OsUsers.Lock()
 	defer OsUsers.Unlock()
 	user, present := OsUsers.users[uid]
@@ -67,7 +67,7 @@ func (up *osUsers) Uname2User(uname string) User {
 }
 
 func (up *osUsers) Gid2Group(gid int) Group {
-	once.Do(initOsusers)
+	once.Do(initOsUsers)
 	OsUsers.Lock()
 	group, present := OsUsers.groups[gid]
 	if present {

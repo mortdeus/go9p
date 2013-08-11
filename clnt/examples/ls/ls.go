@@ -17,7 +17,7 @@ func main() {
 	var err error
 	var c *clnt.Clnt
 	var file *clnt.File
-	var d []*p.Dir
+	var d []*go9p.Dir
 
 	flag.Parse()
 	user = go9p.OsUsers.Uid2User(os.Geteuid())

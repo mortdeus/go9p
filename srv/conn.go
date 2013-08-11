@@ -158,8 +158,6 @@ func (conn *Conn) recv() {
 			pos -= fcsize
 		}
 	}
-
-	panic("unreached")
 }
 
 func (conn *Conn) send() {
@@ -204,8 +202,6 @@ func (conn *Conn) send() {
 			}
 		}
 	}
-
-	panic("unreached")
 }
 
 func (conn *Conn) RemoteAddr() net.Addr {
