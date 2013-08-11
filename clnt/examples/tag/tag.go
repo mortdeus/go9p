@@ -1,8 +1,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/clnt"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/clnt"
 	"flag"
 	"log"
 	"os"
@@ -13,7 +13,7 @@ var debuglevel = flag.Int("d", 0, "debuglevel")
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 
 func main() {
-	var user p.User
+	var user go9p.User
 	var ba [][]byte
 	var nreqs int
 	var rchan chan *clnt.Req
@@ -22,7 +22,7 @@ func main() {
 	var wnames []string
 
 	flag.Parse()
-	user = p.OsUsers.Uid2User(os.Geteuid())
+	user = go9p.OsUsers.Uid2User(os.Geteuid())
 	clnt.DefaultDebuglevel = *debuglevel
 	c, err := clnt.Mount("tcp", *addr, "", user)
 	if err != nil {
@@ -64,7 +64,7 @@ func main() {
 		nreqs++
 		wnames = wnames[n:]
 	}
-	err = tag.Open(fid, p.OREAD)
+	err = tag.Open(fid, go9p.OREAD)
 	if err != nil {
 		goto error
 	}
@@ -82,7 +82,7 @@ func main() {
 	// now start reading...
 	for nreqs > 0 {
 		r := <-rchan
-		if r.Tc.Type == p.Tread {
+		if r.Tc.Type == go9p.Tread {
 			i := r.Tc.Offset / 8192
 			copy(ba[i], r.Rc.Data)
 			ba[i] = ba[i][0:r.Rc.Count]

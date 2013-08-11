@@ -3,7 +3,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"fmt"
 	"io"
 	"net/http"
@@ -79,7 +79,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 		fs := conn.Srv.Log.Filter(conn, DbgLogFcalls)
 		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
 		for i, l := range fs {
-			fc := l.Data.(*p.Fcall)
+			fc := l.Data.(*go9p.Fcall)
 			if fc.Type == 0 {
 				continue
 			}
@@ -88,7 +88,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 			if fc.Type%2 == 0 {
 				// try to find the response for the T message
 				for j := i + 1; j < len(fs); j++ {
-					rc := fs[j].Data.(*p.Fcall)
+					rc := fs[j].Data.(*go9p.Fcall)
 					if rc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10164;</a>", j)
 						break
@@ -97,7 +97,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 			} else {
 				// try to find the request for the R message
 				for j := i - 1; j >= 0; j-- {
-					tc := fs[j].Data.(*p.Fcall)
+					tc := fs[j].Data.(*go9p.Fcall)
 					if tc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10166;</a>", j)
 						break

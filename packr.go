@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package go9p
 
 // Create a Rversion message in the specified Fcall.
 func PackRversion(fc *Fcall, msize uint32, version string) error {

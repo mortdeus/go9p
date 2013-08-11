@@ -1,4 +1,4 @@
-package p
+package go9p
 
 type Log struct {
 	Data  interface{}

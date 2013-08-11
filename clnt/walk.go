@@ -5,7 +5,7 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"strings"
 	"syscall"
 )
@@ -14,9 +14,9 @@ import (
 // sequence and associates the resulting file with newfid. If no wnames
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
-func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, error) {
+func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]go9p.Qid, error) {
 	tc := clnt.NewFcall()
-	err := p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
+	err := go9p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return nil, err
 	}
@@ -67,24 +67,24 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 		}
 
 		tc := clnt.NewFcall()
-		err = p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n])
+		err = go9p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n])
 		if err != nil {
 			goto error
 		}
 
-		var rc *p.Fcall
+		var rc *go9p.Fcall
 		rc, err = clnt.Rpc(tc)
 		if err != nil {
 			goto error
 		}
-		if rc.Type == p.Rerror {
-			err = &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+		if rc.Type == go9p.Rerror {
+			err = &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 			goto error
 		}
 
 		newfid.walked = true
 		if len(rc.Wqid) != n {
-			err = &p.Error{"file not found", p.ENOENT}
+			err = &go9p.Error{"file not found", go9p.ENOENT}
 			goto error
 		}
 

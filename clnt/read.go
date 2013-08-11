@@ -5,7 +5,7 @@
 package clnt
 
 import "io"
-import "code.google.com/p/go9p/p"
+import "code.google.com/p/go9p"
 import "syscall"
 
 // Reads count bytes starting from offset from the file associated with the fid.
@@ -17,7 +17,7 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 	}
 
 	tc := clnt.NewFcall()
-	err := p.PackTread(tc, fid.Fid, offset, count)
+	err := go9p.PackTread(tc, fid.Fid, offset, count)
 	if err != nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return nil, &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return rc.Data, nil
@@ -87,9 +87,9 @@ func (file *File) Readn(buf []byte, offset uint64) (int, error) {
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*p.Dir, error) {
-	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ)
-	dirs := make([]*p.Dir, 32)
+func (file *File) Readdir(num int) ([]*go9p.Dir, error) {
+	buf := make([]byte, file.fid.Clnt.Msize-go9p.IOHDRSZ)
+	dirs := make([]*go9p.Dir, 32)
 	pos := 0
 	for {
 		n, err := file.Read(buf)
@@ -102,14 +102,14 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			d, perr := p.UnpackDir(b, file.fid.Clnt.Dotu)
+			d, perr := go9p.UnpackDir(b, file.fid.Clnt.Dotu)
 			if perr != nil {
 				return nil, perr
 			}
 
 			b = b[d.Size+2:]
 			if pos >= len(dirs) {
-				s := make([]*p.Dir, len(dirs)+32)
+				s := make([]*go9p.Dir, len(dirs)+32)
 				copy(s, dirs)
 				dirs = s
 			}

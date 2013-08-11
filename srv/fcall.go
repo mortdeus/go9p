@@ -5,15 +5,15 @@
 package srv
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 )
 
 func (srv *Srv) version(req *Req) {
 	tc := req.Tc
 	conn := req.Conn
 
-	if tc.Msize < p.IOHDRSZ {
-		req.RespondError(&p.Error{"msize too small", p.EINVAL})
+	if tc.Msize < go9p.IOHDRSZ {
+		req.RespondError(&go9p.Error{"msize too small", go9p.EINVAL})
 		return
 	}
 
@@ -30,7 +30,7 @@ func (srv *Srv) version(req *Req) {
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
 	for tag, r := range conn.reqs {
-		if tag == p.NOTAG {
+		if tag == go9p.NOTAG {
 			continue
 		}
 
@@ -48,7 +48,7 @@ func (srv *Srv) version(req *Req) {
 func (srv *Srv) auth(req *Req) {
 	tc := req.Tc
 	conn := req.Conn
-	if tc.Afid == p.NOFID {
+	if tc.Afid == go9p.NOFID {
 		req.RespondError(Eunknownfid)
 		return
 	}
@@ -59,8 +59,8 @@ func (srv *Srv) auth(req *Req) {
 		return
 	}
 
-	var user p.User = nil
-	if tc.Unamenum != p.NOUID || conn.Dotu {
+	var user go9p.User = nil
+	if tc.Unamenum != go9p.NOUID || conn.Dotu {
 		user = srv.Upool.Uid2User(int(tc.Unamenum))
 	} else if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
@@ -72,13 +72,13 @@ func (srv *Srv) auth(req *Req) {
 	}
 
 	req.Afid.User = user
-	req.Afid.Type = p.QTAUTH
+	req.Afid.Type = go9p.QTAUTH
 	if aop, ok := (srv.ops).(AuthOps); ok {
 		aqid, err := aop.AuthInit(req.Afid, tc.Aname)
 		if err != nil {
 			req.RespondError(err)
 		} else {
-			aqid.Type |= p.QTAUTH // just in case
+			aqid.Type |= go9p.QTAUTH // just in case
 			req.RespondRauth(aqid)
 		}
 	} else {
@@ -88,7 +88,7 @@ func (srv *Srv) auth(req *Req) {
 }
 
 func (srv *Srv) authPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rauth {
+	if req.Rc != nil && req.Rc.Type == go9p.Rauth {
 		req.Afid.IncRef()
 	}
 }
@@ -96,7 +96,7 @@ func (srv *Srv) authPost(req *Req) {
 func (srv *Srv) attach(req *Req) {
 	tc := req.Tc
 	conn := req.Conn
-	if tc.Fid == p.NOFID {
+	if tc.Fid == go9p.NOFID {
 		req.RespondError(Eunknownfid)
 		return
 	}
@@ -107,15 +107,15 @@ func (srv *Srv) attach(req *Req) {
 		return
 	}
 
-	if tc.Afid != p.NOFID {
+	if tc.Afid != go9p.NOFID {
 		req.Afid = conn.FidGet(tc.Afid)
 		if req.Afid == nil {
 			req.RespondError(Eunknownfid)
 		}
 	}
 
-	var user p.User = nil
-	if tc.Unamenum != p.NOUID || conn.Dotu {
+	var user go9p.User = nil
+	if tc.Unamenum != go9p.NOUID || conn.Dotu {
 		user = srv.Upool.Uid2User(int(tc.Unamenum))
 	} else if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
@@ -139,7 +139,7 @@ func (srv *Srv) attach(req *Req) {
 }
 
 func (srv *Srv) attachPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rattach {
+	if req.Rc != nil && req.Rc.Type == go9p.Rattach {
 		req.Fid.Type = req.Rc.Qid.Type
 		req.Fid.IncRef()
 	}
@@ -148,7 +148,7 @@ func (srv *Srv) attachPost(req *Req) {
 func (srv *Srv) flush(req *Req) {
 	conn := req.Conn
 	tag := req.Tc.Oldtag
-	p.PackRflush(req.Rc)
+	go9p.PackRflush(req.Rc)
 	conn.Lock()
 	r := conn.reqs[tag]
 	if r != nil {
@@ -186,7 +186,7 @@ func (srv *Srv) walk(req *Req) {
 	fid := req.Fid
 
 	/* we can't walk regular files, only clone them */
-	if len(tc.Wname) > 0 && (fid.Type&p.QTDIR) == 0 {
+	if len(tc.Wname) > 0 && (fid.Type&go9p.QTDIR) == 0 {
 		req.RespondError(Enotdir)
 		return
 	}
@@ -216,7 +216,7 @@ func (srv *Srv) walk(req *Req) {
 
 func (srv *Srv) walkPost(req *Req) {
 	rc := req.Rc
-	if rc == nil || rc.Type != p.Rwalk || req.Newfid == nil {
+	if rc == nil || rc.Type != go9p.Rwalk || req.Newfid == nil {
 		return
 	}
 
@@ -245,7 +245,7 @@ func (srv *Srv) open(req *Req) {
 		return
 	}
 
-	if (fid.Type&p.QTDIR) != 0 && tc.Mode != p.OREAD {
+	if (fid.Type&go9p.QTDIR) != 0 && tc.Mode != go9p.OREAD {
 		req.RespondError(Eperm)
 		return
 	}
@@ -256,7 +256,7 @@ func (srv *Srv) open(req *Req) {
 
 func (srv *Srv) openPost(req *Req) {
 	if req.Fid != nil {
-		req.Fid.opened = req.Rc != nil && req.Rc.Type == p.Ropen
+		req.Fid.opened = req.Rc != nil && req.Rc.Type == go9p.Ropen
 	}
 }
 
@@ -268,19 +268,19 @@ func (srv *Srv) create(req *Req) {
 		return
 	}
 
-	if (fid.Type & p.QTDIR) == 0 {
+	if (fid.Type & go9p.QTDIR) == 0 {
 		req.RespondError(Enotdir)
 		return
 	}
 
 	/* can't open directories for other than reading */
-	if (tc.Perm&p.DMDIR) != 0 && tc.Mode != p.OREAD {
+	if (tc.Perm&go9p.DMDIR) != 0 && tc.Mode != go9p.OREAD {
 		req.RespondError(Eperm)
 		return
 	}
 
 	/* can't create special files if not 9P2000.u */
-	if (tc.Perm&(p.DMNAMEDPIPE|p.DMSYMLINK|p.DMLINK|p.DMDEVICE|p.DMSOCKET)) != 0 && !req.Conn.Dotu {
+	if (tc.Perm&(go9p.DMNAMEDPIPE|go9p.DMSYMLINK|go9p.DMLINK|go9p.DMDEVICE|go9p.DMSOCKET)) != 0 && !req.Conn.Dotu {
 		req.RespondError(Eperm)
 		return
 	}
@@ -290,7 +290,7 @@ func (srv *Srv) create(req *Req) {
 }
 
 func (srv *Srv) createPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rcreate && req.Fid != nil {
+	if req.Rc != nil && req.Rc.Type == go9p.Rcreate && req.Fid != nil {
 		req.Fid.Type = req.Rc.Qid.Type
 		req.Fid.opened = true
 	}
@@ -299,16 +299,16 @@ func (srv *Srv) createPost(req *Req) {
 func (srv *Srv) read(req *Req) {
 	tc := req.Tc
 	fid := req.Fid
-	if tc.Count+p.IOHDRSZ > req.Conn.Msize {
+	if tc.Count+go9p.IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge)
 		return
 	}
 
-	if (fid.Type & p.QTAUTH) != 0 {
+	if (fid.Type & go9p.QTAUTH) != 0 {
 		var n int
 
 		rc := req.Rc
-		err := p.InitRread(rc, tc.Count)
+		err := go9p.InitRread(rc, tc.Count)
 		if err != nil {
 			req.RespondError(err)
 			return
@@ -321,7 +321,7 @@ func (srv *Srv) read(req *Req) {
 				return
 			}
 
-			p.SetRreadCount(rc, uint32(n))
+			go9p.SetRreadCount(rc, uint32(n))
 			req.Respond()
 		} else {
 			req.RespondError(Enotimpl)
@@ -330,7 +330,7 @@ func (srv *Srv) read(req *Req) {
 		return
 	}
 
-	if (fid.Type & p.QTDIR) != 0 {
+	if (fid.Type & go9p.QTDIR) != 0 {
 		if tc.Offset == 0 {
 			fid.Diroffset = 0
 		} else if tc.Offset != fid.Diroffset {
@@ -343,7 +343,7 @@ func (srv *Srv) read(req *Req) {
 }
 
 func (srv *Srv) readPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rread && (req.Fid.Type&p.QTDIR) != 0 {
+	if req.Rc != nil && req.Rc.Type == go9p.Rread && (req.Fid.Type&go9p.QTDIR) != 0 {
 		req.Fid.Diroffset += uint64(req.Rc.Count)
 	}
 }
@@ -351,7 +351,7 @@ func (srv *Srv) readPost(req *Req) {
 func (srv *Srv) write(req *Req) {
 	fid := req.Fid
 	tc := req.Tc
-	if (fid.Type & p.QTAUTH) != 0 {
+	if (fid.Type & go9p.QTAUTH) != 0 {
 		tc := req.Tc
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
 			n, err := op.AuthWrite(req.Fid, tc.Offset, tc.Data)
@@ -367,12 +367,12 @@ func (srv *Srv) write(req *Req) {
 		return
 	}
 
-	if !fid.opened || (fid.Type&p.QTDIR) != 0 || (fid.Omode&3) == p.OREAD {
+	if !fid.opened || (fid.Type&go9p.QTDIR) != 0 || (fid.Omode&3) == go9p.OREAD {
 		req.RespondError(Ebaduse)
 		return
 	}
 
-	if tc.Count+p.IOHDRSZ > req.Conn.Msize {
+	if tc.Count+go9p.IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge)
 		return
 	}
@@ -382,7 +382,7 @@ func (srv *Srv) write(req *Req) {
 
 func (srv *Srv) clunk(req *Req) {
 	fid := req.Fid
-	if (fid.Type & p.QTAUTH) != 0 {
+	if (fid.Type & go9p.QTAUTH) != 0 {
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
 			op.AuthDestroy(fid)
 			req.RespondRclunk()
@@ -397,7 +397,7 @@ func (srv *Srv) clunk(req *Req) {
 }
 
 func (srv *Srv) clunkPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rclunk && req.Fid != nil {
+	if req.Rc != nil && req.Rc.Type == go9p.Rclunk && req.Fid != nil {
 		req.Fid.DecRef()
 	}
 }
@@ -422,8 +422,8 @@ func (srv *Srv) wstat(req *Req) {
 			return
 		}
 
-		if (d.Mode != 0xFFFFFFFF) && (((fid.Type&p.QTDIR) != 0 && (d.Mode&p.DMDIR) == 0) ||
-			((d.Type&p.QTDIR) == 0 && (d.Mode&p.DMDIR) != 0)) {
+		if (d.Mode != 0xFFFFFFFF) && (((fid.Type&go9p.QTDIR) != 0 && (d.Mode&go9p.DMDIR) == 0) ||
+			((d.Type&go9p.QTDIR) == 0 && (d.Mode&go9p.DMDIR) != 0)) {
 			req.RespondError(Edirchange)
 			return
 		}

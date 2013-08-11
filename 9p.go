@@ -4,7 +4,7 @@
 
 // The p9 package provides the definitions and functions used to implement
 // the 9P2000 protocol.
-package p
+package go9p
 
 import (
 	"fmt"

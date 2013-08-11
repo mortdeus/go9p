@@ -5,7 +5,7 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"strings"
 	"syscall"
 )
@@ -14,7 +14,7 @@ import (
 // the operation is successful.
 func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 	tc := clnt.NewFcall()
-	err := p.PackTopen(tc, fid.Fid, mode)
+	err := go9p.PackTopen(tc, fid.Fid, mode)
 	if err != nil {
 		return err
 	}
@@ -23,14 +23,14 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 	if err != nil {
 		return err
 	}
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid
 	fid.Iounit = rc.Iounit
-	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHDRSZ {
-		fid.Iounit = clnt.Msize - p.IOHDRSZ
+	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-go9p.IOHDRSZ {
+		fid.Iounit = clnt.Msize - go9p.IOHDRSZ
 	}
 	fid.Mode = mode
 	return nil
@@ -40,7 +40,7 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 // if the operation is successful.
 func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
 	tc := clnt.NewFcall()
-	err := p.PackTcreate(tc, fid.Fid, name, perm, mode, ext, clnt.Dotu)
+	err := go9p.PackTcreate(tc, fid.Fid, name, perm, mode, ext, clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -49,14 +49,14 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext str
 	if err != nil {
 		return err
 	}
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid
 	fid.Iounit = rc.Iounit
-	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHDRSZ {
-		fid.Iounit = clnt.Msize - p.IOHDRSZ
+	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-go9p.IOHDRSZ {
+		fid.Iounit = clnt.Msize - go9p.IOHDRSZ
 	}
 	fid.Mode = mode
 	return nil

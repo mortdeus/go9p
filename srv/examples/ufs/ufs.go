@@ -5,8 +5,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/srv"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/srv"
 	"flag"
 	"fmt"
 	"io"
@@ -34,19 +34,19 @@ type Ufs struct {
 var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Int("d", 0, "print debug messages")
 var root = flag.String("root", "/", "root filesystem")
-var Enoent = &p.Error{"file not found", p.ENOENT}
+var Enoent = &go9p.Error{"file not found", go9p.ENOENT}
 
-func toError(err error) *p.Error {
+func toError(err error) *go9p.Error {
 	var ecode syscall.Errno
 
 	ename := err.Error()
 	if e, ok := err.(syscall.Errno); ok {
 		ecode = e
 	} else {
-		ecode = p.EIO
+		ecode = go9p.EIO
 	}
 
-	return &p.Error{ename, ecode}
+	return &go9p.Error{ename, ecode}
 }
 
 // IsBlock reports if the file is a block device
@@ -61,7 +61,7 @@ func isChar(d os.FileInfo) bool {
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
 
-func (fid *Fid) stat() *p.Error {
+func (fid *Fid) stat() *go9p.Error {
 	var err error
 
 	fid.st, err = os.Lstat(fid.path)
@@ -75,32 +75,32 @@ func (fid *Fid) stat() *p.Error {
 func omode2uflags(mode uint8) int {
 	ret := int(0)
 	switch mode & 3 {
-	case p.OREAD:
+	case go9p.OREAD:
 		ret = os.O_RDONLY
 		break
 
-	case p.ORDWR:
+	case go9p.ORDWR:
 		ret = os.O_RDWR
 		break
 
-	case p.OWRITE:
+	case go9p.OWRITE:
 		ret = os.O_WRONLY
 		break
 
-	case p.OEXEC:
+	case go9p.OEXEC:
 		ret = os.O_RDONLY
 		break
 	}
 
-	if mode&p.OTRUNC != 0 {
+	if mode&go9p.OTRUNC != 0 {
 		ret |= os.O_TRUNC
 	}
 
 	return ret
 }
 
-func dir2Qid(d os.FileInfo) *p.Qid {
-	var qid p.Qid
+func dir2Qid(d os.FileInfo) *go9p.Qid {
+	var qid go9p.Qid
 
 	qid.Path = d.Sys().(*syscall.Stat_t).Ino
 	qid.Version = uint32(d.ModTime().UnixNano() / 1000000)
@@ -112,11 +112,11 @@ func dir2Qid(d os.FileInfo) *p.Qid {
 func dir2QidType(d os.FileInfo) uint8 {
 	ret := uint8(0)
 	if d.IsDir() {
-		ret |= p.QTDIR
+		ret |= go9p.QTDIR
 	}
 
 	if d.Mode()&os.ModeSymlink != 0 {
-		ret |= p.QTSYMLINK
+		ret |= go9p.QTSYMLINK
 	}
 
 	return ret
@@ -125,46 +125,46 @@ func dir2QidType(d os.FileInfo) uint8 {
 func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 	ret := uint32(d.Mode() & 0777)
 	if d.IsDir() {
-		ret |= p.DMDIR
+		ret |= go9p.DMDIR
 	}
 
 	if dotu {
 		mode := d.Mode()
 		if mode&os.ModeSymlink != 0 {
-			ret |= p.DMSYMLINK
+			ret |= go9p.DMSYMLINK
 		}
 
 		if mode&os.ModeSocket != 0 {
-			ret |= p.DMSOCKET
+			ret |= go9p.DMSOCKET
 		}
 
 		if mode&os.ModeNamedPipe != 0 {
-			ret |= p.DMNAMEDPIPE
+			ret |= go9p.DMNAMEDPIPE
 		}
 
 		if mode&os.ModeDevice != 0 {
-			ret |= p.DMDEVICE
+			ret |= go9p.DMDEVICE
 		}
 
 		if mode&os.ModeSetuid != 0 {
-			ret |= p.DMSETUID
+			ret |= go9p.DMSETUID
 		}
 
 		if mode&os.ModeSetgid != 0 {
-			ret |= p.DMSETGID
+			ret |= go9p.DMSETGID
 		}
 	}
 
 	return ret
 }
 
-// Dir is an instantiation of the p.Dir structure
+// Dir is an instantiation of the go9p.Dir structure
 // that can act as a receiver for local methods.
 type Dir struct {
-	p.Dir
+	go9p.Dir
 }
 
-func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
+func dir2Dir(path string, d os.FileInfo, dotu bool, upool go9p.Users) *go9p.Dir {
 	sysMode := d.Sys().(*syscall.Stat_t)
 
 	dir := new(Dir)
@@ -200,7 +200,7 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	return &dir.Dir
 }
 
-func (dir *Dir) dotu(path string, d os.FileInfo, upool p.Users, sysMode *syscall.Stat_t) {
+func (dir *Dir) dotu(path string, d os.FileInfo, upool go9p.Users, sysMode *syscall.Stat_t) {
 	u := upool.Uid2User(int(sysMode.Uid))
 	g := upool.Gid2Group(int(sysMode.Gid))
 	dir.Uid = u.Name()
@@ -216,7 +216,7 @@ func (dir *Dir) dotu(path string, d os.FileInfo, upool p.Users, sysMode *syscall
 	dir.Ext = ""
 	dir.Uidnum = uint32(u.Id())
 	dir.Gidnum = uint32(g.Id())
-	dir.Muidnum = p.NOUID
+	dir.Muidnum = go9p.NOUID
 	if d.Mode()&os.ModeSymlink != 0 {
 		var err error
 		dir.Ext, err = os.Readlink(path)
@@ -297,7 +297,7 @@ func (*Ufs) Walk(req *srv.Req) {
 	}
 
 	nfid := req.Newfid.Aux.(*Fid)
-	wqids := make([]p.Qid, len(tc.Wname))
+	wqids := make([]go9p.Qid, len(tc.Wname))
 	path := fid.path
 	i := 0
 	for ; i < len(tc.Wname); i++ {
@@ -352,13 +352,13 @@ func (*Ufs) Create(req *srv.Req) {
 	var e error = nil
 	var file *os.File = nil
 	switch {
-	case tc.Perm&p.DMDIR != 0:
+	case tc.Perm&go9p.DMDIR != 0:
 		e = os.Mkdir(path, os.FileMode(tc.Perm&0777))
 
-	case tc.Perm&p.DMSYMLINK != 0:
+	case tc.Perm&go9p.DMSYMLINK != 0:
 		e = os.Symlink(tc.Ext, path)
 
-	case tc.Perm&p.DMLINK != 0:
+	case tc.Perm&go9p.DMLINK != 0:
 		n, e := strconv.ParseUint(tc.Ext, 10, 0)
 		if e != nil {
 			break
@@ -373,18 +373,18 @@ func (*Ufs) Create(req *srv.Req) {
 		e = os.Link(ofid.Aux.(*Fid).path, path)
 		ofid.DecRef()
 
-	case tc.Perm&p.DMNAMEDPIPE != 0:
-	case tc.Perm&p.DMDEVICE != 0:
-		req.RespondError(&p.Error{"not implemented", p.EIO})
+	case tc.Perm&go9p.DMNAMEDPIPE != 0:
+	case tc.Perm&go9p.DMDEVICE != 0:
+		req.RespondError(&go9p.Error{"not implemented", go9p.EIO})
 		return
 
 	default:
 		var mode uint32 = tc.Perm & 0777
 		if req.Conn.Dotu {
-			if tc.Perm&p.DMSETUID > 0 {
+			if tc.Perm&go9p.DMSETUID > 0 {
 				mode |= syscall.S_ISUID
 			}
-			if tc.Perm&p.DMSETGID > 0 {
+			if tc.Perm&go9p.DMSETGID > 0 {
 				mode |= syscall.S_ISGID
 			}
 		}
@@ -421,7 +421,7 @@ func (*Ufs) Read(req *srv.Req) {
 		return
 	}
 
-	p.InitRread(rc, tc.Count)
+	go9p.InitRread(rc, tc.Count)
 	var count int
 	var e error
 	if fid.st.IsDir() {
@@ -452,7 +452,7 @@ func (*Ufs) Read(req *srv.Req) {
 			for i = 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
 				st := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
-				sz := p.PackDir(st, b, req.Conn.Dotu)
+				sz := go9p.PackDir(st, b, req.Conn.Dotu)
 				if sz == 0 {
 					break
 				}
@@ -476,7 +476,7 @@ func (*Ufs) Read(req *srv.Req) {
 		}
 	}
 
-	p.SetRreadCount(rc, uint32(count))
+	go9p.SetRreadCount(rc, uint32(count))
 	req.Respond()
 }
 
@@ -529,13 +529,13 @@ func (*Ufs) Stat(req *srv.Req) {
 	req.RespondRstat(st)
 }
 
-func lookup(uid string, group bool) (uint32, *p.Error) {
+func lookup(uid string, group bool) (uint32, *go9p.Error) {
 	if uid == "" {
-		return p.NOUID, nil
+		return go9p.NOUID, nil
 	}
 	usr, e := user.Lookup(uid)
 	if e != nil {
-		return p.NOUID, toError(e)
+		return go9p.NOUID, toError(e)
 	}
 	conv := usr.Uid
 	if group {
@@ -543,7 +543,7 @@ func lookup(uid string, group bool) (uint32, *p.Error) {
 	}
 	u, e := strconv.Atoi(conv)
 	if e != nil {
-		return p.NOUID, toError(e)
+		return go9p.NOUID, toError(e)
 	}
 	return uint32(u), nil
 }
@@ -560,10 +560,10 @@ func (*Ufs) Wstat(req *srv.Req) {
 	if dir.Mode != 0xFFFFFFFF {
 		mode := dir.Mode & 0777
 		if req.Conn.Dotu {
-			if dir.Mode&p.DMSETUID > 0 {
+			if dir.Mode&go9p.DMSETUID > 0 {
 				mode |= syscall.S_ISUID
 			}
-			if dir.Mode&p.DMSETGID > 0 {
+			if dir.Mode&go9p.DMSETGID > 0 {
 				mode |= syscall.S_ISGID
 			}
 		}
@@ -574,7 +574,7 @@ func (*Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
-	uid, gid := p.NOUID, p.NOUID
+	uid, gid := go9p.NOUID, go9p.NOUID
 	if req.Conn.Dotu {
 		uid = dir.Uidnum
 		gid = dir.Gidnum
@@ -598,7 +598,7 @@ func (*Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
-	if uid != p.NOUID || gid != p.NOUID {
+	if uid != go9p.NOUID || gid != go9p.NOUID {
 		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
 			req.RespondError(toError(e))

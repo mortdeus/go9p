@@ -5,17 +5,17 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"net"
 	"syscall"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
 // successful, or an Error.
-func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, error) {
+func (clnt *Clnt) Auth(user go9p.User, aname string) (*Fid, error) {
 	fid := clnt.FidAlloc()
 	tc := clnt.NewFcall()
-	err := p.PackTauth(tc, fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
+	err := go9p.PackTauth(tc, fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}
@@ -33,18 +33,18 @@ func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, error) {
 // Creates a fid for the specified user that points to the root
 // of the file server's file tree. Returns a Fid pointing to the root,
 // if successful, or an Error.
-func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
+func (clnt *Clnt) Attach(afid *Fid, user go9p.User, aname string) (*Fid, error) {
 	var afno uint32
 
 	if afid != nil {
 		afno = afid.Fid
 	} else {
-		afno = p.NOFID
+		afno = go9p.NOFID
 	}
 
 	fid := clnt.FidAlloc()
 	tc := clnt.NewFcall()
-	err := p.PackTattach(tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
+	err := go9p.PackTattach(tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return nil, &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid
@@ -64,17 +64,17 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 }
 
 // Connects to a file server and attaches to it as the specified user.
-func Mount(ntype, addr, aname string, user p.User) (*Clnt, error) {
+func Mount(ntype, addr, aname string, user go9p.User) (*Clnt, error) {
 	c, e := net.Dial(ntype, addr)
 	if e != nil {
-		return nil, &p.Error{e.Error(), p.EIO}
+		return nil, &go9p.Error{e.Error(), go9p.EIO}
 	}
 
 	return MountConn(c, aname, user)
 }
 
-func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
-	clnt, err := Connect(c, 8192+p.IOHDRSZ, true)
+func MountConn(c net.Conn, aname string, user go9p.User) (*Clnt, error) {
+	clnt, err := Connect(c, 8192+go9p.IOHDRSZ, true)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
 // Closes the connection to the file sever.
 func (clnt *Clnt) Unmount() {
 	clnt.Lock()
-	clnt.err = &p.Error{"connection closed", p.ECONNRESET}
+	clnt.err = &go9p.Error{"connection closed", go9p.ECONNRESET}
 	clnt.conn.Close()
 	clnt.Unlock()
 }

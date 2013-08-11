@@ -7,7 +7,7 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"fmt"
 	"log"
 	"net"
@@ -38,7 +38,7 @@ type Clnt struct {
 	Dotu       bool   // If true, 9P2000.u protocol is spoken
 	Root       *Fid   // Fid that points to the rood directory
 	Id         string // Used when printing debug messages
-	Log        *p.Logger
+	Log        *go9p.Logger
 
 	conn     net.Conn
 	tagpool  *pool
@@ -50,7 +50,7 @@ type Clnt struct {
 	err      error
 
 	reqchan chan *Req
-	tchan   chan *p.Fcall
+	tchan   chan *go9p.Fcall
 
 	next, prev *Clnt
 }
@@ -59,13 +59,13 @@ type Clnt struct {
 // low level methods that correspond directly to the 9P2000 message requests
 type Fid struct {
 	sync.Mutex
-	Clnt   *Clnt // Client the fid belongs to
-	Iounit uint32
-	p.Qid         // The Qid description for the file
-	Mode   uint8  // Open mode (one of p.O* values) (if file is open)
-	Fid    uint32 // Fid number
-	p.User        // The user the fid belongs to
-	walked bool   // true if the fid points to a walked file on the server
+	Clnt      *Clnt // Client the fid belongs to
+	Iounit    uint32
+	go9p.Qid         // The Qid description for the file
+	Mode      uint8  // Open mode (one of go9p.O* values) (if file is open)
+	Fid       uint32 // Fid number
+	go9p.User        // The user the fid belongs to
+	walked    bool   // true if the fid points to a walked file on the server
 }
 
 // The file is similar to the Fid, but is used in the high-level client
@@ -86,8 +86,8 @@ type pool struct {
 type Req struct {
 	sync.Mutex
 	Clnt       *Clnt
-	Tc         *p.Fcall
-	Rc         *p.Fcall
+	Tc         *go9p.Fcall
+	Rc         *go9p.Fcall
 	Err        error
 	Done       chan *Req
 	tag        uint16
@@ -102,18 +102,18 @@ type ClntList struct {
 
 var clnts *ClntList
 var DefaultDebuglevel int
-var DefaultLogger *p.Logger
+var DefaultLogger *go9p.Logger
 
 func (clnt *Clnt) Rpcnb(r *Req) error {
 	var tag uint16
 
-	if r.Tc.Type == p.Tversion {
-		tag = p.NOTAG
+	if r.Tc.Type == go9p.Tversion {
+		tag = go9p.NOTAG
 	} else {
 		tag = r.tag
 	}
 
-	p.SetTag(r.Tc, tag)
+	go9p.SetTag(r.Tc, tag)
 	clnt.Lock()
 	if clnt.err != nil {
 		clnt.Unlock()
@@ -134,7 +134,7 @@ func (clnt *Clnt) Rpcnb(r *Req) error {
 	return nil
 }
 
-func (clnt *Clnt) Rpc(tc *p.Fcall) (rc *p.Fcall, err error) {
+func (clnt *Clnt) Rpc(tc *go9p.Fcall) (rc *go9p.Fcall, err error) {
 	r := clnt.ReqAlloc()
 	r.Tc = tc
 	r.Done = make(chan *Req)
@@ -166,7 +166,7 @@ func (clnt *Clnt) recv() {
 
 		n, oerr := clnt.conn.Read(buf[pos:])
 		if oerr != nil || n == 0 {
-			err = &p.Error{oerr.Error(), p.EIO}
+			err = &go9p.Error{oerr.Error(), go9p.EIO}
 			clnt.Lock()
 			clnt.err = err
 			clnt.Unlock()
@@ -175,7 +175,7 @@ func (clnt *Clnt) recv() {
 
 		pos += n
 		for pos > 4 {
-			sz, _ := p.Gint32(buf)
+			sz, _ := go9p.Gint32(buf)
 			if pos < int(sz) {
 				if len(buf) < int(sz) {
 					b := make([]byte, clnt.Msize*8)
@@ -187,7 +187,7 @@ func (clnt *Clnt) recv() {
 				break
 			}
 
-			fc, err, fcsize := p.Unpack(buf, clnt.Dotu)
+			fc, err, fcsize := go9p.Unpack(buf, clnt.Dotu)
 			clnt.Lock()
 			if err != nil {
 				clnt.err = err
@@ -215,7 +215,7 @@ func (clnt *Clnt) recv() {
 			}
 
 			if r == nil {
-				clnt.err = &p.Error{"unexpected response", p.EINVAL}
+				clnt.err = &go9p.Error{"unexpected response", go9p.EINVAL}
 				clnt.conn.Close()
 				clnt.Unlock()
 				goto closed
@@ -236,13 +236,13 @@ func (clnt *Clnt) recv() {
 			clnt.Unlock()
 
 			if r.Tc.Type != r.Rc.Type-1 {
-				if r.Rc.Type != p.Rerror {
-					r.Err = &p.Error{"invalid response", p.EINVAL}
+				if r.Rc.Type != go9p.Rerror {
+					r.Err = &go9p.Error{"invalid response", go9p.EINVAL}
 					log.Println(fmt.Sprintf("TTT %v", r.Tc))
 					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
 					if r.Err == nil {
-						r.Err = &p.Error{r.Rc.Error, syscall.Errno(r.Rc.Errornum)}
+						r.Err = &go9p.Error{r.Rc.Error, syscall.Errno(r.Rc.Errornum)}
 					}
 				}
 			}
@@ -336,12 +336,12 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnt.Debuglevel = DefaultDebuglevel
 	clnt.Log = DefaultLogger
 	clnt.Id = c.RemoteAddr().String() + ":"
-	clnt.tagpool = newPool(uint32(p.NOTAG))
-	clnt.fidpool = newPool(p.NOFID)
+	clnt.tagpool = newPool(uint32(go9p.NOTAG))
+	clnt.fidpool = newPool(go9p.NOFID)
 	clnt.reqout = make(chan *Req)
 	clnt.done = make(chan bool)
 	clnt.reqchan = make(chan *Req, 16)
-	clnt.tchan = make(chan *p.Fcall, 16)
+	clnt.tchan = make(chan *go9p.Fcall, 16)
 
 	go clnt.recv()
 	go clnt.send()
@@ -374,8 +374,8 @@ func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, error) {
 		ver = "9P2000.u"
 	}
 
-	tc := p.NewFcall(clnt.Msize)
-	err := p.PackTversion(tc, clnt.Msize, ver)
+	tc := go9p.NewFcall(clnt.Msize)
+	err := go9p.PackTversion(tc, clnt.Msize, ver)
 	if err != nil {
 		return nil, err
 	}
@@ -402,16 +402,16 @@ func (clnt *Clnt) FidAlloc() *Fid {
 	return fid
 }
 
-func (clnt *Clnt) NewFcall() *p.Fcall {
+func (clnt *Clnt) NewFcall() *go9p.Fcall {
 	select {
 	case tc := <-clnt.tchan:
 		return tc
 	default:
 	}
-	return p.NewFcall(clnt.Msize)
+	return go9p.NewFcall(clnt.Msize)
 }
 
-func (clnt *Clnt) FreeFcall(fc *p.Fcall) {
+func (clnt *Clnt) FreeFcall(fc *go9p.Fcall) {
 	if fc != nil && len(fc.Buf) >= int(clnt.Msize) {
 		select {
 		case clnt.tchan <- fc:
@@ -451,7 +451,7 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	}
 }
 
-func (clnt *Clnt) logFcall(fc *p.Fcall) {
+func (clnt *Clnt) logFcall(fc *go9p.Fcall) {
 	if clnt.Debuglevel&DbgLogPackets != 0 {
 		pkt := make([]byte, len(fc.Pkt))
 		copy(pkt, fc.Pkt)
@@ -459,7 +459,7 @@ func (clnt *Clnt) logFcall(fc *p.Fcall) {
 	}
 
 	if clnt.Debuglevel&DbgLogFcalls != 0 {
-		f := new(p.Fcall)
+		f := new(go9p.Fcall)
 		*f = *fc
 		f.Pkt = nil
 		clnt.Log.Log(f, clnt, DbgLogFcalls)

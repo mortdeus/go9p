@@ -5,8 +5,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/srv"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/srv"
 	"flag"
 	"fmt"
 	"log"
@@ -57,20 +57,20 @@ func main() {
 	var s *srv.Fsrv
 
 	flag.Parse()
-	user := p.OsUsers.Uid2User(os.Geteuid())
+	user := go9p.OsUsers.Uid2User(os.Geteuid())
 	root := new(srv.File)
-	err = root.Add(nil, "/", user, nil, p.DMDIR|0555, nil)
+	err = root.Add(nil, "/", user, nil, go9p.DMDIR|0555, nil)
 	if err != nil {
 		goto error
 	}
 
 	tm = new(Time)
-	err = tm.Add(root, "time", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, tm)
+	err = tm.Add(root, "time", go9p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, tm)
 	if err != nil {
 		goto error
 	}
 	ntm = new(InfTime)
-	err = ntm.Add(root, "inftime", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, ntm)
+	err = ntm.Add(root, "inftime", go9p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, ntm)
 	if err != nil {
 		goto error
 	}

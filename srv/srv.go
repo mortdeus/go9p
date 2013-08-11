@@ -7,7 +7,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p"
 	"net"
 	"sync"
 )
@@ -29,18 +29,18 @@ const (
 	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
 )
 
-var Eunknownfid error = &p.Error{"unknown fid", p.EINVAL}
-var Enoauth error = &p.Error{"no authentication required", p.EINVAL}
-var Einuse error = &p.Error{"fid already in use", p.EINVAL}
-var Ebaduse error = &p.Error{"bad use of fid", p.EINVAL}
-var Eopen error = &p.Error{"fid already opened", p.EINVAL}
-var Enotdir error = &p.Error{"not a directory", p.ENOTDIR}
-var Eperm error = &p.Error{"permission denied", p.EPERM}
-var Etoolarge error = &p.Error{"i/o count too large", p.EINVAL}
-var Ebadoffset error = &p.Error{"bad offset in directory read", p.EINVAL}
-var Edirchange error = &p.Error{"cannot convert between files and directories", p.EINVAL}
-var Enouser error = &p.Error{"unknown user", p.EINVAL}
-var Enotimpl error = &p.Error{"not implemented", p.EINVAL}
+var Eunknownfid error = &go9p.Error{"unknown fid", go9p.EINVAL}
+var Enoauth error = &go9p.Error{"no authentication required", go9p.EINVAL}
+var Einuse error = &go9p.Error{"fid already in use", go9p.EINVAL}
+var Ebaduse error = &go9p.Error{"bad use of fid", go9p.EINVAL}
+var Eopen error = &go9p.Error{"fid already opened", go9p.EINVAL}
+var Enotdir error = &go9p.Error{"not a directory", go9p.ENOTDIR}
+var Eperm error = &go9p.Error{"permission denied", go9p.EPERM}
+var Etoolarge error = &go9p.Error{"i/o count too large", go9p.EINVAL}
+var Ebadoffset error = &go9p.Error{"bad offset in directory read", go9p.EINVAL}
+var Edirchange error = &go9p.Error{"cannot convert between files and directories", go9p.EINVAL}
+var Enouser error = &go9p.Error{"unknown user", go9p.EINVAL}
+var Enotimpl error = &go9p.Error{"not implemented", go9p.EINVAL}
 
 // Authentication operations. The file server should implement them if
 // it requires user authentication. The authentication in 9P2000 is
@@ -53,7 +53,7 @@ type AuthOps interface {
 	// is referred by afid.User. The function should return the Qid
 	// for the authentication file, or an Error if the user can't be
 	// authenticated
-	AuthInit(afid *Fid, aname string) (*p.Qid, error)
+	AuthInit(afid *Fid, aname string) (*go9p.Qid, error)
 
 	// AuthDestroy is called when an authentication fid is destroyed.
 	AuthDestroy(afid *Fid)
@@ -144,13 +144,13 @@ type StatsOps interface {
 // that implements the file server operations.
 type Srv struct {
 	sync.Mutex
-	Id         string  // Used for debugging and stats
-	Msize      uint32  // Maximum size of the 9P2000 messages supported by the server
-	Dotu       bool    // If true, the server supports the 9P2000.u extension
-	Debuglevel int     // debug level
-	Upool      p.Users // Interface for finding users and groups known to the file server
-	Maxpend    int     // Maximum pending outgoing requests
-	Log        *p.Logger
+	Id         string     // Used for debugging and stats
+	Msize      uint32     // Maximum size of the 9P2000 messages supported by the server
+	Dotu       bool       // If true, the server supports the 9P2000.u extension
+	Debuglevel int        // debug level
+	Upool      go9p.Users // Interface for finding users and groups known to the file server
+	Maxpend    int        // Maximum pending outgoing requests
+	Log        *go9p.Logger
 
 	ops   interface{}     // operations
 	conns map[*Conn]*Conn // List of connections
@@ -170,7 +170,7 @@ type Conn struct {
 	reqs    map[uint16]*Req // all outstanding requests
 
 	reqout chan *Req
-	rchan  chan *p.Fcall
+	rchan  chan *go9p.Fcall
 	done   chan bool
 
 	// stats
@@ -194,10 +194,10 @@ type Fid struct {
 	refcount  int
 	opened    bool        // True if the Fid is opened
 	Fconn     *Conn       // Connection the Fid belongs to
-	Omode     uint8       // Open mode (p.O* flags), if the fid is opened
-	Type      uint8       // Fid type (p.QT* flags)
+	Omode     uint8       // Open mode (go9p.O* flags), if the fid is opened
+	Type      uint8       // Fid type (go9p.QT* flags)
 	Diroffset uint64      // If directory, the next valid read position
-	User      p.User      // The Fid's user
+	User      go9p.User   // The Fid's user
 	Aux       interface{} // Can be used by the file server implementation for per-Fid data
 }
 
@@ -208,12 +208,12 @@ type Fid struct {
 // should be destroyed.
 type Req struct {
 	sync.Mutex
-	Tc     *p.Fcall // Incoming 9P2000 message
-	Rc     *p.Fcall // Outgoing 9P2000 response
-	Fid    *Fid     // The Fid value for all messages that contain fid[4]
-	Afid   *Fid     // The Fid value for the messages that contain afid[4] (Tauth and Tattach)
-	Newfid *Fid     // The Fid value for the messages that contain newfid[4] (Twalk)
-	Conn   *Conn    // Connection that the request belongs to
+	Tc     *go9p.Fcall // Incoming 9P2000 message
+	Rc     *go9p.Fcall // Outgoing 9P2000 response
+	Fid    *Fid        // The Fid value for all messages that contain fid[4]
+	Afid   *Fid        // The Fid value for the messages that contain afid[4] (Tauth and Tattach)
+	Newfid *Fid        // The Fid value for the messages that contain newfid[4] (Twalk)
+	Conn   *Conn       // Connection that the request belongs to
 
 	status     reqStatus
 	flushreq   *Req
@@ -233,15 +233,15 @@ func (srv *Srv) Start(ops interface{}) bool {
 
 	srv.ops = ops
 	if srv.Upool == nil {
-		srv.Upool = p.OsUsers
+		srv.Upool = go9p.OsUsers
 	}
 
-	if srv.Msize < p.IOHDRSZ {
-		srv.Msize = p.MSIZE
+	if srv.Msize < go9p.IOHDRSZ {
+		srv.Msize = go9p.MSIZE
 	}
 
 	if srv.Log == nil {
-		srv.Log = p.NewLogger(1024)
+		srv.Log = go9p.NewLogger(1024)
 	}
 
 	if sop, ok := (interface{}(srv)).(StatsOps); ok {
@@ -291,7 +291,7 @@ func (req *Req) Process() {
 	srv := conn.Srv
 	tc := req.Tc
 
-	if tc.Fid != p.NOFID && tc.Type != p.Tattach {
+	if tc.Fid != go9p.NOFID && tc.Type != go9p.Tattach {
 		srv.Lock()
 		req.Fid = conn.FidGet(tc.Fid)
 		srv.Unlock()
@@ -303,45 +303,45 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(&p.Error{"unknown message type", p.ENOSYS})
+		req.RespondError(&go9p.Error{"unknown message type", go9p.ENOSYS})
 
-	case p.Tversion:
+	case go9p.Tversion:
 		srv.version(req)
 
-	case p.Tauth:
+	case go9p.Tauth:
 		srv.auth(req)
 
-	case p.Tattach:
+	case go9p.Tattach:
 		srv.attach(req)
 
-	case p.Tflush:
+	case go9p.Tflush:
 		srv.flush(req)
 
-	case p.Twalk:
+	case go9p.Twalk:
 		srv.walk(req)
 
-	case p.Topen:
+	case go9p.Topen:
 		srv.open(req)
 
-	case p.Tcreate:
+	case go9p.Tcreate:
 		srv.create(req)
 
-	case p.Tread:
+	case go9p.Tread:
 		srv.read(req)
 
-	case p.Twrite:
+	case go9p.Twrite:
 		srv.write(req)
 
-	case p.Tclunk:
+	case go9p.Tclunk:
 		srv.clunk(req)
 
-	case p.Tremove:
+	case go9p.Tremove:
 		srv.remove(req)
 
-	case p.Tstat:
+	case go9p.Tstat:
 		srv.stat(req)
 
-	case p.Twstat:
+	case go9p.Twstat:
 		srv.wstat(req)
 	}
 }
@@ -355,28 +355,28 @@ func (req *Req) PostProcess() {
 
 	/* call the post-handlers (if needed) */
 	switch req.Tc.Type {
-	case p.Tauth:
+	case go9p.Tauth:
 		srv.authPost(req)
 
-	case p.Tattach:
+	case go9p.Tattach:
 		srv.attachPost(req)
 
-	case p.Twalk:
+	case go9p.Twalk:
 		srv.walkPost(req)
 
-	case p.Topen:
+	case go9p.Topen:
 		srv.openPost(req)
 
-	case p.Tcreate:
+	case go9p.Tcreate:
 		srv.createPost(req)
 
-	case p.Tread:
+	case go9p.Tread:
 		srv.readPost(req)
 
-	case p.Tclunk:
+	case go9p.Tclunk:
 		srv.clunkPost(req)
 
-	case p.Tremove:
+	case go9p.Tremove:
 		srv.removePost(req)
 	}
 

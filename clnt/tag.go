@@ -4,7 +4,7 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "code.google.com/p/go9p"
 
 type Tag struct {
 	clnt     *Clnt
@@ -54,22 +54,22 @@ func (tag *Tag) reqproc() {
 		case r := <-tag.respchan:
 			rc := r.Rc
 			fid := r.fid
-			err := r.Rc.Type == p.Rerror
+			err := r.Rc.Type == go9p.Rerror
 
 			switch r.Tc.Type {
-			case p.Tauth:
+			case go9p.Tauth:
 				if err {
 					fid.User = nil
 				}
 
-			case p.Tattach:
+			case go9p.Tattach:
 				if !err {
 					fid.Qid = rc.Qid
 				} else {
 					fid.User = nil
 				}
 
-			case p.Twalk:
+			case go9p.Twalk:
 				if !err {
 					fid.walked = true
 					if len(rc.Wqid) > 0 {
@@ -79,8 +79,8 @@ func (tag *Tag) reqproc() {
 					fid.User = nil
 				}
 
-			case p.Topen:
-			case p.Tcreate:
+			case go9p.Topen:
+			case go9p.Tcreate:
 				if !err {
 					fid.Iounit = rc.Iounit
 					fid.Qid = rc.Qid
@@ -88,8 +88,8 @@ func (tag *Tag) reqproc() {
 					fid.Mode = 0
 				}
 
-			case p.Tclunk:
-			case p.Tremove:
+			case go9p.Tclunk:
+			case go9p.Tremove:
 				tag.clnt.fidpool.putId(fid.Fid)
 			}
 
@@ -98,10 +98,10 @@ func (tag *Tag) reqproc() {
 	}
 }
 
-func (tag *Tag) Auth(afid *Fid, user p.User, aname string) error {
+func (tag *Tag) Auth(afid *Fid, user go9p.User, aname string) error {
 	req := tag.reqAlloc()
 	req.fid = afid
-	err := p.PackTauth(req.Tc, afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
+	err := go9p.PackTauth(req.Tc, afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -110,18 +110,18 @@ func (tag *Tag) Auth(afid *Fid, user p.User, aname string) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Attach(fid, afid *Fid, user p.User, aname string) error {
+func (tag *Tag) Attach(fid, afid *Fid, user go9p.User, aname string) error {
 	var afno uint32
 
 	if afid != nil {
 		afno = afid.Fid
 	} else {
-		afno = p.NOFID
+		afno = go9p.NOFID
 	}
 
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTattach(req.Tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
+	err := go9p.PackTattach(req.Tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 		newfid.Qid = fid.Qid
 	}
 
-	err := p.PackTwalk(req.Tc, fid.Fid, newfid.Fid, wnames)
+	err := go9p.PackTwalk(req.Tc, fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 func (tag *Tag) Open(fid *Fid, mode uint8) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTopen(req.Tc, fid.Fid, mode)
+	err := go9p.PackTopen(req.Tc, fid.Fid, mode)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (tag *Tag) Open(fid *Fid, mode uint8) error {
 func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTcreate(req.Tc, fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
+	err := go9p.PackTcreate(req.Tc, fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext strin
 func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTread(req.Tc, fid.Fid, offset, count)
+	err := go9p.PackTread(req.Tc, fid.Fid, offset, count)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
 func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTwrite(req.Tc, fid.Fid, offset, uint32(len(data)), data)
+	err := go9p.PackTwrite(req.Tc, fid.Fid, offset, uint32(len(data)), data)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
 func (tag *Tag) Clunk(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTclunk(req.Tc, fid.Fid)
+	err := go9p.PackTclunk(req.Tc, fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (tag *Tag) Clunk(fid *Fid) error {
 func (tag *Tag) Remove(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTremove(req.Tc, fid.Fid)
+	err := go9p.PackTremove(req.Tc, fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (tag *Tag) Remove(fid *Fid) error {
 func (tag *Tag) Stat(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTstat(req.Tc, fid.Fid)
+	err := go9p.PackTstat(req.Tc, fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -225,10 +225,10 @@ func (tag *Tag) Stat(fid *Fid) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Wstat(fid *Fid, dir *p.Dir) error {
+func (tag *Tag) Wstat(fid *Fid, dir *go9p.Dir) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := p.PackTwstat(req.Tc, fid.Fid, dir, tag.clnt.Dotu)
+	err := go9p.PackTwstat(req.Tc, fid.Fid, dir, tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}

@@ -4,14 +4,14 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "code.google.com/p/go9p"
 
 // Clunks a fid. Returns nil if successful.
 func (clnt *Clnt) Clunk(fid *Fid) (err error) {
 	err = nil
 	if fid.walked {
 		tc := clnt.NewFcall()
-		err := p.PackTclunk(tc, fid.Fid)
+		err := go9p.PackTclunk(tc, fid.Fid)
 		if err != nil {
 			return err
 		}
@@ -21,7 +21,7 @@ func (clnt *Clnt) Clunk(fid *Fid) (err error) {
 
 	clnt.fidpool.putId(fid.Fid)
 	fid.walked = false
-	fid.Fid = p.NOFID
+	fid.Fid = go9p.NOFID
 	return
 }
 

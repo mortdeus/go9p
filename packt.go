@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package go9p
 
 // Create a Tversion message in the specified Fcall.
 func PackTversion(fc *Fcall, msize uint32, version string) error {

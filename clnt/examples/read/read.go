@@ -1,8 +1,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/clnt"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/clnt"
 	"flag"
 	"io"
 	"log"
@@ -14,14 +14,14 @@ var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 
 func main() {
 	var n int
-	var user p.User
+	var user go9p.User
 	var err error
 	var c *clnt.Clnt
 	var file *clnt.File
 	var buf []byte
 
 	flag.Parse()
-	user = p.OsUsers.Uid2User(os.Geteuid())
+	user = go9p.OsUsers.Uid2User(os.Geteuid())
 	clnt.DefaultDebuglevel = *debuglevel
 	c, err = clnt.Mount("tcp", *addr, "", user)
 	if err != nil {
@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	file, err = c.FOpen(flag.Arg(0), p.OREAD)
+	file, err = c.FOpen(flag.Arg(0), go9p.OREAD)
 	if err != nil {
 		goto error
 	}

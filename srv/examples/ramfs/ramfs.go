@@ -5,8 +5,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/srv"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/srv"
 	"flag"
 	"fmt"
 	"log"
@@ -15,8 +15,8 @@ import (
 
 type Ramfs struct {
 	srv     *srv.Fsrv
-	user    p.User
-	group   p.Group
+	user    go9p.User
+	group   go9p.Group
 	blksz   int
 	blkchan chan []byte
 	zero    []byte // blksz array of zeroes
@@ -115,7 +115,7 @@ func (f *RFile) Remove(fid *srv.FFid) error {
 	return nil
 }
 
-func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) error {
+func (f *RFile) Wstat(fid *srv.FFid, dir *go9p.Dir) error {
 	var uid, gid uint32
 
 	f.Lock()
@@ -124,7 +124,7 @@ func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) error {
 	up := rsrv.srv.Upool
 	uid = dir.Uidnum
 	gid = dir.Gidnum
-	if uid == p.NOUID && dir.Uid != "" {
+	if uid == go9p.NOUID && dir.Uid != "" {
 		user := up.Uname2User(dir.Uid)
 		if user == nil {
 			return srv.Enouser
@@ -133,7 +133,7 @@ func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) error {
 		f.Uidnum = uint32(user.Id())
 	}
 
-	if gid == p.NOUID && dir.Gid != "" {
+	if gid == go9p.NOUID && dir.Gid != "" {
 		group := up.Gname2Group(dir.Gid)
 		if group == nil {
 			return srv.Enouser
@@ -217,22 +217,22 @@ func (f *RFile) expand(sz uint64) {
 
 func main() {
 	var err error
-	var l *p.Logger
+	var l *go9p.Logger
 
 	flag.Parse()
-	rsrv.user = p.OsUsers.Uid2User(os.Geteuid())
-	rsrv.group = p.OsUsers.Gid2Group(os.Getegid())
+	rsrv.user = go9p.OsUsers.Uid2User(os.Geteuid())
+	rsrv.group = go9p.OsUsers.Gid2Group(os.Getegid())
 	rsrv.blksz = *blksize
 	rsrv.blkchan = make(chan []byte, 2048)
 	rsrv.zero = make([]byte, rsrv.blksz)
 
 	root := new(RFile)
-	err = root.Add(nil, "/", rsrv.user, nil, p.DMDIR|0777, root)
+	err = root.Add(nil, "/", rsrv.user, nil, go9p.DMDIR|0777, root)
 	if err != nil {
 		goto error
 	}
 
-	l = p.NewLogger(*logsz)
+	l = go9p.NewLogger(*logsz)
 	rsrv.srv = srv.NewFileSrv(&root.File)
 	rsrv.srv.Dotu = true
 	rsrv.srv.Debuglevel = *debug

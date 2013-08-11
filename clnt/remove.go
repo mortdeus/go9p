@@ -4,24 +4,24 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "code.google.com/p/go9p"
 import "syscall"
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
 func (clnt *Clnt) Remove(fid *Fid) error {
 	tc := clnt.NewFcall()
-	err := p.PackTremove(tc, fid.Fid)
+	err := go9p.PackTremove(tc, fid.Fid)
 	if err != nil {
 		return err
 	}
 
 	rc, err := clnt.Rpc(tc)
 	clnt.fidpool.putId(fid.Fid)
-	fid.Fid = p.NOFID
+	fid.Fid = go9p.NOFID
 
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return err

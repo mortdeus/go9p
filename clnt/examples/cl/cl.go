@@ -4,8 +4,8 @@ package main
 
 import (
 	"bufio"
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/clnt"
+	"code.google.com/p/go9p"
+	"code.google.com/p/go9p/clnt"
 	"flag"
 	"fmt"
 	"io"
@@ -69,9 +69,9 @@ func b(mode uint32, s uint8) string {
 // Convert file mode bits to string representation
 func modetostr(mode uint32) string {
 	d := "-"
-	if mode&p.DMDIR != 0 {
+	if mode&go9p.DMDIR != 0 {
 		d = "d"
-	} else if mode&p.DMAPPEND != 0 {
+	} else if mode&go9p.DMAPPEND != 0 {
 		d = "a"
 	}
 	return fmt.Sprintf("%s%s%s%s", d, b(mode, 6), b(mode, 3), b(mode, 0))
@@ -144,7 +144,7 @@ func lsone(c *clnt.Clnt, s string, long bool) {
 		fmt.Fprintf(os.Stderr, "error stat: %v\n", oserr)
 		return
 	}
-	if st.Mode&p.DMDIR != 0 {
+	if st.Mode&go9p.DMDIR != 0 {
 		file, oserr := c.FOpen(s, p.OREAD)
 		if oserr != nil {
 			fmt.Fprintf(os.Stderr, "error opening dir: %s\n", oserr)
@@ -198,7 +198,7 @@ func walkone(c *clnt.Clnt, s string, fileok bool) {
 		return
 	}
 
-	if fileok != true && (fid.Type&p.QTDIR == 0) {
+	if fileok != true && (fid.Type&go9p.QTDIR == 0) {
 		fmt.Fprintf(os.Stderr, "can't cd to file [%s]\n", ncwd)
 		return
 	}

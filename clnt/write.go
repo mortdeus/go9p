@@ -4,7 +4,7 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "code.google.com/p/go9p"
 import "syscall"
 
 // Write up to len(data) bytes starting from offset. Returns the
@@ -15,7 +15,7 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, error) {
 	}
 
 	tc := clnt.NewFcall()
-	err := p.PackTwrite(tc, fid.Fid, offset, uint32(len(data)), data)
+	err := go9p.PackTwrite(tc, fid.Fid, offset, uint32(len(data)), data)
 	if err != nil {
 		return 0, err
 	}
@@ -24,8 +24,8 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if rc.Type == p.Rerror {
-		return 0, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+	if rc.Type == go9p.Rerror {
+		return 0, &go9p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return int(rc.Count), nil
