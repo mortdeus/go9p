@@ -5,8 +5,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/srv"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/srv"
 	"flag"
 	"fmt"
 	"log"
@@ -239,8 +239,6 @@ func main() {
 	rsrv.srv.Start(rsrv.srv)
 	rsrv.srv.Id = "ramfs"
 	rsrv.srv.Log = l
-
-	srv.StartStatsServer()
 
 	err = rsrv.srv.StartNetListener("tcp", *addr)
 	if err != nil {

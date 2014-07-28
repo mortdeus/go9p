@@ -7,7 +7,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p"
+	"github.com/mortdeus/go9p"
 	"net"
 	"sync"
 )
@@ -194,8 +194,8 @@ type Fid struct {
 	refcount  int
 	opened    bool        // True if the Fid is opened
 	Fconn     *Conn       // Connection the Fid belongs to
-	Omode     uint8       // Open mode (go9p.O* flags), if the fid is opened
-	Type      uint8       // Fid type (go9p.QT* flags)
+	Omode     uint8       // Open mode (p.O* flags), if the fid is opened
+	Type      uint8       // Fid type (p.QT* flags)
 	Diroffset uint64      // If directory, the next valid read position
 	User      go9p.User   // The Fid's user
 	Aux       interface{} // Can be used by the file server implementation for per-Fid data
@@ -303,7 +303,7 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(&go9p.Error{"unknown message type", go9p.ENOSYS})
+		req.RespondError(&go9p.Error{"unknown message type", go9p.EINVAL})
 
 	case go9p.Tversion:
 		srv.version(req)

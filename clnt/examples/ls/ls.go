@@ -1,9 +1,9 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/clnt"
 	"flag"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/clnt"
 	"io"
 	"log"
 	"os"

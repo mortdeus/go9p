@@ -5,7 +5,7 @@
 package srv
 
 import "fmt"
-import "code.google.com/p/go9p"
+import "github.com/mortdeus/go9p"
 
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err interface{}) {

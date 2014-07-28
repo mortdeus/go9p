@@ -1,9 +1,9 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/clnt"
 	"flag"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/clnt"
 	"io"
 	"log"
 	"os"
@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	file, err = c.FOpen(flag.Arg(0), go9p.OWRITE|p.OTRUNC)
+	file, err = c.FOpen(flag.Arg(0), go9p.OWRITE|go9p.OTRUNC)
 	if err != nil {
 		file, err = c.FCreate(flag.Arg(0), 0666, go9p.OWRITE)
 		if err != nil {
@@ -58,7 +58,7 @@ func main() {
 		}
 
 		if m != n {
-			err = &p.Error{"short write", 0}
+			err = &go9p.Error{"short write", 0}
 			goto error
 		}
 	}

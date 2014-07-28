@@ -5,10 +5,10 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/srv"
 	"flag"
 	"fmt"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/srv"
 	"io"
 	"log"
 	"os"
@@ -658,9 +658,6 @@ func main() {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
-
-	// determined by build tags
-	extraFuncs()
 
 	err := ufs.StartNetListener("tcp", *addr)
 	if err != nil {

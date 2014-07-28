@@ -2,8 +2,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/clnt"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/clnt"
 	"crypto/rand"
 	"crypto/tls"
 	"flag"

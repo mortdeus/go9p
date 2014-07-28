@@ -1,4 +1,4 @@
-// Copyright 2009 The Go9p Authors.  All rights reserved.
+// Copyright 2014 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -77,14 +77,9 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			goto szerror
 		}
 
-		if dotu {
-			if len(p) > 0 {
-				fc.Unamenum, p = gint32(p)
-			} else {
-				fc.Unamenum = NOUID
-			}
-		} else {
-			fc.Unamenum = NOUID
+		fc.Unamenum = NOUID
+		if dotu && len(p) > 0 {
+			fc.Unamenum, p = gint32(p)
 		}
 
 	case Rauth, Rattach:
@@ -106,12 +101,9 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			goto szerror
 		}
 
-		if dotu {
-			if len(p) > 0 {
-				fc.Unamenum, p = gint32(p)
-			} else {
-				fc.Unamenum = NOUID
-			}
+		fc.Unamenum = NOUID
+		if dotu && len(p) > 0 {
+			fc.Unamenum, p = gint32(p)
 		}
 
 	case Rerror:

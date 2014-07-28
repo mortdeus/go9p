@@ -7,8 +7,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/srv"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/srv"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -246,7 +246,6 @@ func main() {
 	rsrv.srv.Start(rsrv.srv)
 	rsrv.srv.Id = "ramfs"
 	rsrv.srv.Log = l
-	srv.StartStatsServer()
 
 	cert := make([]tls.Certificate, 1)
 	cert[0].Certificate = [][]byte{testCertificate}

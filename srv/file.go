@@ -5,7 +5,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p"
+	"github.com/mortdeus/go9p"
 	"log"
 	"sync"
 	"time"
@@ -231,7 +231,6 @@ func (f *File) Rename(name string) error {
 // Looks for a file in a directory. Returns nil if the file is not found.
 func (p *File) Find(name string) *File {
 	var f *File
-
 	p.Lock()
 	for f = p.cfirst; f != nil; f = f.next {
 		if name == f.Name {
@@ -370,6 +369,7 @@ func (*Fsrv) Open(req *Req) {
 		err := op.Open(fid, tc.Mode)
 		if err != nil {
 			req.RespondError(err)
+			return
 		}
 	}
 	req.RespondRopen(&fid.F.Qid, 0)

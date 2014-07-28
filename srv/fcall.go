@@ -5,7 +5,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p"
+	"github.com/mortdeus/go9p"
 )
 
 func (srv *Srv) version(req *Req) {
@@ -422,8 +422,8 @@ func (srv *Srv) wstat(req *Req) {
 			return
 		}
 
-		if (d.Mode != 0xFFFFFFFF) && (((fid.Type&go9p.QTDIR) != 0 && (d.Mode&go9p.DMDIR) == 0) ||
-			((d.Type&go9p.QTDIR) == 0 && (d.Mode&go9p.DMDIR) != 0)) {
+		if (d.Mode != 0xFFFFFFFF) && (((fid.Type&go9p.QTDIR) != 0 && (d.Mode&p.DMDIR) == 0) ||
+			((d.Type&go9p.QTDIR) == 0 && (d.Mode&p.DMDIR) != 0)) {
 			req.RespondError(Edirchange)
 			return
 		}

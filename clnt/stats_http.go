@@ -1,9 +1,10 @@
+
 // +build httpstats
 
 package clnt
 
 import (
-	"code.google.com/p/go9p"
+	"github.com/mortdeus/go9p"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +19,7 @@ func (clnt *Clnt) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 		fs := clnt.Log.Filter(clnt, DbgLogFcalls)
 		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
 		for _, l := range fs {
-			fc := l.Data.(*go9p.Fcall)
+			fc := l.Data.(*p.Fcall)
 			if fc.Type != 0 {
 				io.WriteString(c, fmt.Sprintf("<br>%s", fc))
 			}
@@ -54,5 +55,5 @@ func (c *ClntList) statsRegister() {
 }
 
 func (c *ClntList) statsUnregister() {
-	httgo9p.HandleFunc("/go9p/clnt", nil)
+	http.HandleFunc("/go9p/clnt", nil)
 }

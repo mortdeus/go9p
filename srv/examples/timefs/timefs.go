@@ -5,8 +5,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p"
-	"code.google.com/p/go9p/srv"
+	"github.com/mortdeus/go9p"
+	"github.com/mortdeus/go9p/srv"
 	"flag"
 	"fmt"
 	"log"

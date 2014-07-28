@@ -7,8 +7,8 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p"
 	"fmt"
+	"github.com/mortdeus/go9p"
 	"log"
 	"net"
 	"sync"

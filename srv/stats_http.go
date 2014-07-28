@@ -3,7 +3,7 @@
 package srv
 
 import (
-	"code.google.com/p/go9p"
+	"github.com/mortdeus/go9p"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +12,7 @@ import (
 
 var mux sync.RWMutex
 var stat map[string]http.Handler
+var once sync.Once
 
 func register(s string, h http.Handler) {
 	mux.Lock()
@@ -27,6 +28,11 @@ func register(s string, h http.Handler) {
 	mux.Unlock()
 }
 func (srv *Srv) statsRegister() {
+	once.Do(func() {
+		http.HandleFunc("/go9p/", StatsHandler)
+		go http.ListenAndServe(":6060", nil)
+	})
+		
 	register("/go9p/srv/"+srv.Id, srv)
 }
 
@@ -79,7 +85,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 		fs := conn.Srv.Log.Filter(conn, DbgLogFcalls)
 		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
 		for i, l := range fs {
-			fc := l.Data.(*go9p.Fcall)
+			fc := l.Data.(*p.Fcall)
 			if fc.Type == 0 {
 				continue
 			}
@@ -88,7 +94,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 			if fc.Type%2 == 0 {
 				// try to find the response for the T message
 				for j := i + 1; j < len(fs); j++ {
-					rc := fs[j].Data.(*go9p.Fcall)
+					rc := fs[j].Data.(*p.Fcall)
 					if rc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10164;</a>", j)
 						break
@@ -97,7 +103,7 @@ func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 			} else {
 				// try to find the request for the R message
 				for j := i - 1; j >= 0; j-- {
-					tc := fs[j].Data.(*go9p.Fcall)
+					tc := fs[j].Data.(*p.Fcall)
 					if tc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10166;</a>", j)
 						break
@@ -122,16 +128,4 @@ func StatsHandler(c http.ResponseWriter, r *http.Request) {
 		io.WriteString(c, "</body></html>")
 	}
 	mux.RUnlock()
-}
-
-// StartStatsServer initializes and starts an http server displaying useful debugging
-// information about the available servers, the clients connected to them and
-// statistics about the data transferred on each connection. It listens by default on
-// port :6060 and serves subdirectories under /go9p/
-//
-// If StartStatsServer isn't called the interface is not initialized. The StartStatsServer
-// function can be called at any time. Information about the available servers is kept up-to-date.
-func StartStatsServer() {
-	http.HandleFunc("/go9p/", StatsHandler)
-	go http.ListenAndServe(":6060", nil)
 }

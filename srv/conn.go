@@ -5,8 +5,8 @@
 package srv
 
 import (
-	"code.google.com/p/go9p"
 	"fmt"
+	"github.com/mortdeus/go9p"
 	"log"
 	"net"
 )
@@ -158,6 +158,8 @@ func (conn *Conn) recv() {
 			pos -= fcsize
 		}
 	}
+
+	panic("unreached")
 }
 
 func (conn *Conn) send() {
@@ -202,6 +204,8 @@ func (conn *Conn) send() {
 			}
 		}
 	}
+
+	panic("unreached")
 }
 
 func (conn *Conn) RemoteAddr() net.Addr {
